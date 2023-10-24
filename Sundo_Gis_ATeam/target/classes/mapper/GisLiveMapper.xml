@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gis.mapper.GisLiveMapper">
+
+     <!-- 날짜를 기준 Temp_Gps에서 gps 가져오기 -->
+<!--    <select id="findLiveGpsByTempGps" resultType="com.gis.vo.Gps">-->
+<!--        select * from temp.temp_gps where date = #{date} order by time desc limit 1-->
+<!--    </select>-->
+
+
+    <!-- 차량을 기준으로 temp_gps 에서 gps 가져오기    -->
+    <select id="findLiveGpsByTempGps" resultType="com.gis.dto.GpsDto">
+        select * from temp.${carNum} order by time desc limit 1
+    </select>
+
+    <!-- 날짜를 기준으로 local_db에서 경로 가져오기 -->
+    <select id="findLocalDbOnToday" resultType="com.gis.dto.LocalDto">
+        select * from local_db where date = #{date}
+    </select>
+
+
+    <!-- live용 프로시저 호출    -->
+
+    <select id="callCreateGpsProcedure" statementType="CALLABLE" parameterType="java.lang.String">
+        CALL create_gps(#{carNum, mode=IN, jdbcType=VARCHAR, javaType=String})
+
+    </select>
+
+    <select id="callDeleteGpsProcedure" statementType="CALLABLE" parameterType="java.lang.String">
+        CALL delete_gps(#{carNum, mode=IN, jdbcType=VARCHAR, javaType=String})
+    </select>
+
+    <select id="callCreatePointProcedure" statementType="CALLABLE" parameterType="java.lang.String">
+        CALL create_point(#{carNum, mode=IN, jdbcType=VARCHAR, javaType=String})
+
+    </select>
+
+    <select id="callDeletePointProcedure" statementType="CALLABLE" parameterType="java.lang.String">
+        CALL delete_point(#{carNum, mode=IN, jdbcType=VARCHAR, javaType=String})
+
+    </select>
+
+    <select id="callCreateLineProcedure" statementType="CALLABLE" parameterType="java.lang.String">
+        CALL create_line(#{carNum, mode=IN, jdbcType=VARCHAR, javaType=String})
+
+    </select>
+
+    <select id="callDeleteLineProcedure" statementType="CALLABLE" parameterType="java.lang.String">
+        CALL delete_line(#{carNum, mode=IN, jdbcType=VARCHAR, javaType=String})
+
+    </select>
+
+    <insert id="saveLiveGps">
+        insert into temp.car${carNum}_gps (car_num, time, geom, lon, lat)
+        values (
+            #{carNum}, #{time}::time,
+            ST_SetSRID(ST_MakePoint(CAST(#{lon} AS DOUBLE PRECISION), CAST(#{lat} AS DOUBLE PRECISION)), 4326),
+            #{lon}, #{lat}
+            )
+    </insert>
+
+    <select id="findLiveLine">
+        select st_makeLine(geom order by time) from temp.car${carNum}_gps
+    </select>
+
+
+    <select id="findCarNumTables" resultType="java.lang.String">
+        select table_name from information_schema.tables
+        where table_schema = 'temp' and table_name like 'car%';
+
+    </select>
+</mapper>
